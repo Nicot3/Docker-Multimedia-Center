@@ -1,0 +1,6 @@
+#Ignore all
+*
+#Except the magic :O
+!.gitignore
+!.env.sample
+!docker-compose.yml

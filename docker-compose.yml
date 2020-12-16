@@ -1,0 +1,110 @@
+version: "3"
+services:
+  # radarr:
+  #   image: linuxserver/radarr
+  #   container_name: radarr
+  #   environment:
+  #     PUID: ${UID}
+  #     PGID: ${GID}
+  #     TZ: ${TZ}
+  #   volumes:
+  #     - ${CONFIG_DIR}/radarr:/config
+  #     - ${MOVIES_DIR}:/movies
+  #     - ${DOWNLOAD_DIR}:/downloads
+  #   ports:
+  #     - 7878:7878
+  #   restart: unless-stopped
+  #   depends_on: 
+  #     - jackett
+  #     - deluge
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    environment:
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes:
+      - ${CONFIG_DIR}/sonarr:/config
+      - ${TV_DIR}:/tv
+      - ${DOWNLOAD_DIR}:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    depends_on:
+      - jackett
+      - deluge
+
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    environment: 
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes: 
+      - ${CONFIG_DIR}/lidarr:/config
+      - ${MUSIC_DIR}:/music
+      - ${DOWNLOAD_DIR}:/downloads
+    ports:
+      - 8686:8686
+    depends_on: 
+      - jackett
+      - deluge
+
+  jackett:
+    image: linuxserver/jackett
+    container_name: jackett
+    environment:
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes:
+      - ${CONFIG_DIR}/jackett:/config
+      - ${DOWNLOAD_DIR}:/downloads
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+
+  deluge:
+    image: linuxserver/deluge
+    container_name: deluge
+    network_mode: host
+    environment:
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes:
+      - ${CONFIG_DIR}/deluge:/config
+      - ${DOWNLOAD_DIR}:/downloads
+    restart: unless-stopped
+
+  ombi:
+    image: linuxserver/ombi
+    container_name: ombi
+    environment: 
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes: 
+      - ${CONFIG_DIR}/ombi:/config
+    ports: 
+      - 3579:3579
+    restart: unless-stopped
+
+  plex:
+    image: linuxserver/plex:bionic
+    container_name: plex
+    network_mode: host
+    environment: 
+      PUID: ${UID}
+      PGID: ${GID}
+      VERSION: docker
+      TZ: ${TZ}
+    volumes: 
+      - ${TV_DIR}:/tv
+      - ${MUSIC_DIR}:/music
+      - ${MOVIES_DIR}:/movies
+      - ${CONFIG_DIR}/plex:/config
+    restart: unless-stopped
