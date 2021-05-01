@@ -1,22 +1,22 @@
 version: "3"
 services:
-  # radarr:
-  #   image: linuxserver/radarr
-  #   container_name: radarr
-  #   environment:
-  #     PUID: ${UID}
-  #     PGID: ${GID}
-  #     TZ: ${TZ}
-  #   volumes:
-  #     - ${CONFIG_DIR}/radarr:/config
-  #     - ${MOVIES_DIR}:/movies
-  #     - ${DOWNLOAD_DIR}:/downloads
-  #   ports:
-  #     - 7878:7878
-  #   restart: unless-stopped
-  #   depends_on: 
-  #     - jackett
-  #     - deluge
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    environment:
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes:
+      - ${CONFIG_DIR}/radarr:/config
+      - ${MOVIES_DIR}:/movies
+      - ${DOWNLOAD_DIR}:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    depends_on: 
+      - jackett
+      - qbittorrent
 
   sonarr:
     image: linuxserver/sonarr
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
     depends_on:
       - jackett
-      - deluge
+      - qbittorrent
 
   lidarr:
     image: linuxserver/lidarr
@@ -51,7 +51,7 @@ services:
       - 8686:8686
     depends_on: 
       - jackett
-      - deluge
+      - qbittorrent
 
   jackett:
     image: linuxserver/jackett
@@ -67,31 +67,44 @@ services:
       - 9117:9117
     restart: unless-stopped
 
-  deluge:
-    image: linuxserver/deluge
-    container_name: deluge
-    network_mode: host
+#  deluge:
+#    image: linuxserver/deluge
+#    container_name: deluge
+#    network_mode: host
+#    environment:
+#      PUID: ${UID}
+#      PGID: ${GID}
+#      TZ: ${TZ}
+#    volumes:
+#      - ${CONFIG_DIR}/deluge:/config
+#      - ${DOWNLOAD_DIR}:/downloads
+#    restart: unless-stopped
+
+  qbittorrent:
+    image: linuxserver/qbittorrent
+    container_name: qbittorrent
     environment:
       PUID: ${UID}
       PGID: ${GID}
       TZ: ${TZ}
+      WEBUI_PORT: 8080
     volumes:
-      - ${CONFIG_DIR}/deluge:/config
+      - ${CONFIG_DIR}/qbittorrent:/config
       - ${DOWNLOAD_DIR}:/downloads
+    ports:
+      - 6881:6881
+      - 6881:6881/udp
+      - 8080:8080
     restart: unless-stopped
 
-  ombi:
-    image: linuxserver/ombi
-    container_name: ombi
-    environment: 
-      PUID: ${UID}
-      PGID: ${GID}
-      TZ: ${TZ}
-    volumes: 
-      - ${CONFIG_DIR}/ombi:/config
-    ports: 
-      - 3579:3579
+  flaresolverr:
+    image: flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    ports:
+      - "8191:8191"
     restart: unless-stopped
+    depends_on:
+     - jackett
 
   plex:
     image: linuxserver/plex:bionic
@@ -108,3 +121,47 @@ services:
       - ${MOVIES_DIR}:/movies
       - ${CONFIG_DIR}/plex:/config
     restart: unless-stopped
+
+  tautulli:
+    image: linuxserver/tautulli
+    container_name: tautulli
+    environment: 
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes: 
+      - ${CONFIG_DIR}/tautulli:/config
+    ports: 
+      - 8181:8181
+    restart: unless-stopped
+    depends_on:
+     - plex
+
+  heimdall:
+    image: linuxserver/heimdall
+    container_name: heimdall
+    environment: 
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes: 
+      - ${CONFIG_DIR}/heimdall:/config
+    ports: 
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+
+  # jellyfin:
+  #   image: linuxserver/jellyfin:bionic
+  #   container_name: jellyfin
+  #   network_mode: host
+  #   environment: 
+  #     PUID: ${UID}
+  #     PGID: ${GID}
+  #     TZ: ${TZ}
+  #   volumes: 
+  #     - ${TV_DIR}:/tv
+  #     - ${MUSIC_DIR}:/music
+  #     - ${MOVIES_DIR}:/movies
+  #     - ${CONFIG_DIR}/jellyfin:/config
+  #   restart: unless-stopped
