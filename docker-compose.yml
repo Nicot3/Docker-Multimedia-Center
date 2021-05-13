@@ -150,6 +150,23 @@ services:
       - 80:80
       - 443:443
     restart: unless-stopped
+  
+  samba:
+    image: dperson/samba
+    container_name: samba
+    ports: 
+      - 139:139
+      - 445:445
+    environment: 
+      TZ: ${TZ}
+      USER: ${SMBUSER};${SMBPASSWORD}
+      SHARE: Peliculas;/movies;yes;no;no;mediacenter
+      SHARE2: Musica;/music;yes;no;no;mediacenter
+      SHARE3: Series;/tv;yes;no;no;mediacenter
+    volumes: 
+      - ${TV_DIR}:/tv
+      - ${MUSIC_DIR}:/music
+      - ${MOVIES_DIR}:/movies
 
   # jellyfin:
   #   image: linuxserver/jellyfin:bionic
