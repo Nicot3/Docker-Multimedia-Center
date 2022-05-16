@@ -1,22 +1,29 @@
 version: "3"
 services:
-  # radarr:
-  #   image: linuxserver/radarr
-  #   container_name: radarr
-  #   environment:
-  #     PUID: ${UID}
-  #     PGID: ${GID}
-  #     TZ: ${TZ}
-  #   volumes:
-  #     - ${CONFIG_DIR}/radarr:/config
-  #     - ${MOVIES_DIR}:/movies
-  #     - ${DOWNLOAD_DIR}:/downloads
-  #   ports:
-  #     - 7878:7878
-  #   restart: unless-stopped
-  #   depends_on: 
-  #     - jackett
-  #     - deluge
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    environment:
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes:
+      - ${CONFIG_DIR}/radarr:/config
+      - ${MOVIES_DIR}:/movies
+      - ${DOWNLOAD_DIR}:/downloads
+    expose:
+      - "7878"
+    restart: unless-stopped
+    depends_on: 
+      - jackett
+      - qbittorrent
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.radarr.rule: PathPrefix(`/radarr`)
+      traefik.http.routers.radarr.entrypoints: "http"
+    depends_on:
+      - jackett
+      - qbittorrent
 
   sonarr:
     image: linuxserver/sonarr
@@ -26,15 +33,19 @@ services:
       PGID: ${GID}
       TZ: ${TZ}
     volumes:
-      - ${SONARR_CONFIG_DIR}:/config
+      - ${CONFIG_DIR}/sonarr:/config
       - ${TV_DIR}:/tv
       - ${DOWNLOAD_DIR}:/downloads
-    ports:
-      - 8989:8989
+    expose:
+      - "8989"
     restart: unless-stopped
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.sonarr.entrypoints: "http"
+      traefik.http.routers.sonarr.rule: PathPrefix(`/sonarr`)
     depends_on:
       - jackett
-      - deluge
+      - qbittorrent
 
   lidarr:
     image: linuxserver/lidarr
@@ -44,14 +55,18 @@ services:
       PGID: ${GID}
       TZ: ${TZ}
     volumes: 
-      - ${LIDARR_CONFIG_DIR}:/config
+      - ${CONFIG_DIR}/lidarr:/config
       - ${MUSIC_DIR}:/music
       - ${DOWNLOAD_DIR}:/downloads
-    ports:
-      - 8686:8686
+    expose:
+      - "8686"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.lidarr.entrypoints: "http"
+      traefik.http.routers.lidarr.rule: PathPrefix(`/lidarr`)
     depends_on: 
       - jackett
-      - deluge
+      - qbittorrent
 
   jackett:
     image: linuxserver/jackett
@@ -61,40 +76,31 @@ services:
       PGID: ${GID}
       TZ: ${TZ}
     volumes:
-      - ${JACKETT_CONFIG_DIR}:/config
+      - ${CONFIG_DIR}/jackett:/config
       - ${DOWNLOAD_DIR}:/downloads
     ports:
       - 9117:9117
     restart: unless-stopped
 
-  deluge:
-    image: linuxserver/deluge
-    container_name: deluge
-    network_mode: host
+  qbittorrent:
+    image: linuxserver/qbittorrent
+    container_name: qbittorrent
     environment:
       PUID: ${UID}
       PGID: ${GID}
       TZ: ${TZ}
+      WEBUI_PORT: 8080
     volumes:
-      - ${DELUGE_CONFIG_DIR}:/config
+      - ${CONFIG_DIR}/qbittorrent:/config
       - ${DOWNLOAD_DIR}:/downloads
-    restart: unless-stopped
-
-  ombi:
-    image: linuxserver/ombi
-    container_name: ombi
-    environment: 
-      PUID: ${UID}
-      PGID: ${GID}
-      TZ: ${TZ}
-    volumes: 
-      - ${OMBI_CONFIG_DIR}:/config
-    ports: 
-      - 3579:3579
+    ports:
+      - 6881:6881
+      - 6881:6881/udp
+      - 8080:8080
     restart: unless-stopped
 
   plex:
-    image: linuxserver/plex:bionic
+    image: linuxserver/plex
     container_name: plex
     network_mode: host
     environment: 
@@ -106,5 +112,69 @@ services:
       - ${TV_DIR}:/tv
       - ${MUSIC_DIR}:/music
       - ${MOVIES_DIR}:/movies
-      - ${PLEX_CONFIG_DIR}:/config
+      - ${CONFIG_DIR}/plex:/config
     restart: unless-stopped
+
+  tautulli:
+    image: linuxserver/tautulli
+    container_name: tautulli
+    environment: 
+      PUID: ${UID}
+      PGID: ${GID}
+      TZ: ${TZ}
+    volumes: 
+      - ${CONFIG_DIR}/tautulli:/config
+    expose: 
+      - "8181"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.tautulli.entrypoints: "http"
+      traefik.http.routers.tautulli.rule: PathPrefix(`/stats`)
+    restart: unless-stopped
+    depends_on:
+     - plex
+  
+  samba:
+    image: dperson/samba
+    container_name: samba
+    ports: 
+      - 139:139
+      - 445:445
+    environment: 
+      TZ: ${TZ}
+      USER: ${SMBUSER};${SMBPASSWORD}
+      RECYCLE: 'false'
+      SHARE: Peliculas;/movies;yes;no;no;mediacenter
+      SHARE2: Musica;/music;yes;no;no;mediacenter
+      SHARE3: Series;/tv;yes;no;no;mediacenter
+    volumes: 
+      - ${TV_DIR}:/tv
+      - ${MUSIC_DIR}:/music
+      - ${MOVIES_DIR}:/movies
+    restart: unless-stopped
+
+  ombi:
+    image: linuxserver/ombi
+    container_name: ombi
+    expose:
+      - "3579"
+    environment: 
+        PUID: ${UID}
+        PGID: ${GID}
+        TZ: ${TZ}
+    volumes: 
+        - ${CONFIG_DIR}/ombi:/config
+    restart: unless-stopped
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ombi.entrypoints: "http"
+      traefik.http.routers.ombi.rule: PathPrefix(`/`)
+
+  traefik:
+    image: traefik
+    container_name: traefik
+    ports:
+      - 80:80
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "${CONFIG_DIR}/traefik:/etc/traefik"
